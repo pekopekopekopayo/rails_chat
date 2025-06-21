@@ -7,7 +7,7 @@ class UsersController < ApplicationController
   def create
     @user = User.new(create_params)
     if @user.save
-      cookies.signed[:user_id] = @user.id
+      session[:user_id] = @user.id
       redirect_to root_path, notice: '회원가입이 완료되었습니다.'
     else
       render :new, status: :unprocessable_entity

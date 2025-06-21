@@ -214,8 +214,8 @@
       });
     }
 
-    // Action Cable 연결
-    const consumer = ActionCable.createConsumer();
+    // Action Cable 연결 (signed token으로 안전하게 인증)
+    const consumer = ActionCable.createConsumer(`/cable?token=<%= current_user_token %>`);
     let chatChannel;
 
     // 채널 구독
