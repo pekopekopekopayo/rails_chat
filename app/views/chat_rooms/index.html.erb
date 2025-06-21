@@ -4,15 +4,28 @@
     <%= link_to '새 채팅방 만들기', new_chat_room_path, class: 'btn-primary' %>
   </div>
 
-  <div class="chat-rooms-list">
+  <div class="chat-rooms-table">
     <% if @chat_rooms.any? %>
-      <% @chat_rooms.each do |chat_room| %>
-        <div class="chat-room-card">
-          <h3><%= chat_room.name %></h3>
-          <p class="room-info">방장: <%= User.find(chat_room.user_id).name %></p>
-          <%= link_to '입장하기', chat_room_path(chat_room), class: 'btn-secondary' %>
-        </div>
-      <% end %>
+      <table class="rooms-table">
+        <thead>
+          <tr>
+            <th>채팅방 이름</th>
+            <th>방장</th>
+            <th>생성일</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @chat_rooms.each do |chat_room| %>
+            <tr class="room-row" data-url="<%= chat_room_path(chat_room) %>">
+              <td class="room-name">
+                <%= chat_room.name %>
+              </td>
+              <td class="room-owner"><%= User.find(chat_room.user_id).name %></td>
+              <td class="room-date"><%= chat_room.created_at.strftime('%Y.%m.%d') %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
     <% else %>
       <div class="empty-state">
         <p>아직 생성된 채팅방이 없습니다.</p>
@@ -43,35 +56,61 @@
       margin: 0;
     }
 
-    .chat-rooms-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 20px;
-    }
-
-    .chat-room-card {
+    .chat-rooms-table {
       background-color: white;
-      border: 1px solid #ddd;
       border-radius: 10px;
-      padding: 20px;
+      overflow: hidden;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      transition: transform 0.2s;
     }
 
-    .chat-room-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    .rooms-table {
+      width: 100%;
+      border-collapse: collapse;
     }
 
-    .chat-room-card h3 {
-      margin: 0 0 10px 0;
+    .rooms-table th {
+      background-color: #f8f9fa;
+      padding: 15px;
+      text-align: left;
+      font-weight: bold;
       color: #333;
-      font-size: 1.2em;
+      border-bottom: 1px solid #dee2e6;
     }
 
-    .room-info {
+    .rooms-table td {
+      padding: 15px;
+      border-bottom: 1px solid #f1f3f4;
+    }
+
+    .room-row {
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .room-row:hover {
+      background-color: #e3f2fd;
+    }
+
+    .room-name {
+      font-weight: 500;
+    }
+
+    .room-link {
+      color: #007bff;
+      text-decoration: none;
+      font-size: 1.1em;
+    }
+
+    .room-link:hover {
+      text-decoration: underline;
+    }
+
+    .room-owner {
       color: #666;
-      margin-bottom: 15px;
+    }
+
+    .room-date {
+      color: #666;
       font-size: 0.9em;
     }
 
@@ -91,21 +130,7 @@
       background-color: #0056b3;
     }
 
-    .btn-secondary {
-      background-color: #6c757d;
-      color: white;
-      padding: 8px 16px;
-      border: none;
-      border-radius: 5px;
-      text-decoration: none;
-      cursor: pointer;
-      font-size: 14px;
-      display: inline-block;
-    }
 
-    .btn-secondary:hover {
-      background-color: #545b62;
-    }
 
     .empty-state {
       text-align: center;
@@ -119,3 +144,18 @@
     }
   </style>
 <% end %>
+
+<script>
+  document.addEventListener('turbo:load', function() {
+    const roomRows = document.querySelectorAll('.room-row');
+
+    roomRows.forEach(function(row) {
+      row.addEventListener('click', function() {
+        const url = this.getAttribute('data-url');
+        if (url) {
+          window.location.href = url;
+        }
+      });
+    });
+  });
+</script>
