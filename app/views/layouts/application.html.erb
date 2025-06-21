@@ -1,16 +1,50 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>RailsChat</title>
+    <title>Rails Chat</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
+    <%= yield :head %>
   </head>
 
   <body>
+    <% if notice %>
+      <div class="flash-notice"><%= notice %></div>
+    <% end %>
+
+    <% if alert %>
+      <div class="flash-alert"><%= alert %></div>
+    <% end %>
+
     <%= yield %>
   </body>
 </html>
+
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+  }
+
+  .flash-notice {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 10px;
+    text-align: center;
+    border: 1px solid #c3e6cb;
+  }
+
+  .flash-alert {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 10px;
+    text-align: center;
+    border: 1px solid #f5c6cb;
+  }
+</style>

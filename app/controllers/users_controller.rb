@@ -4,7 +4,7 @@ class UsersController < ApplicationController
   end
 
   def create
-    @user = User.new(user_params)
+    @user = User.new(create_params)
     if @user.save
       session[:user_id] = @user.id
       redirect_to root_path, notice: '회원가입이 완료되었습니다.'
