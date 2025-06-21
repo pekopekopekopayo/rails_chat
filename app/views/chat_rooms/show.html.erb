@@ -162,37 +162,121 @@
 <% end %>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('turbo:load', function() {
     const form = document.getElementById('message-form');
     const messagesContainer = document.getElementById('messages');
     const contentInput = document.getElementById('message-content');
     const chatRoomId = document.getElementById('chat-room-id').value;
 
-    // 초기 메시지가 없으면 안내 문구 표시
-    if (messagesContainer.children.length === 0) {
-      messagesContainer.innerHTML = '<div class="empty-messages">아직 메시지가 없습니다. 첫 번째 메시지를 보내보세요!</div>';
+    let currentPage = 1;
+    let hasMore = true;
+    let isLoading = false;
+
+    // 초기 메시지 로드
+    loadMessages(1);
+
+    // 메시지 로드 함수
+    function loadMessages(page) {
+      if (isLoading) return;
+      isLoading = true;
+
+      fetch(`/chat_rooms/${chatRoomId}/chats?page=${page}`, {
+        headers: {
+          'Accept': 'application/json'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (page === 1) {
+          messagesContainer.innerHTML = '';
+        }
+
+        if (data.chats.length === 0 && page === 1) {
+          messagesContainer.innerHTML = '<div class="empty-messages">아직 메시지가 없습니다. 첫 번째 메시지를 보내보세요!</div>';
+        } else {
+          // 메시지를 역순으로 추가 (최신이 아래)
+          data.chats.reverse().forEach(chat => {
+            addMessage(chat.username, chat.content, chat.created_at, false);
+          });
+        }
+
+        hasMore = data.has_more;
+        currentPage = data.current_page;
+        isLoading = false;
+
+        if (page === 1) {
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+      })
+      .catch(error => {
+        console.error('메시지 로드 실패:', error);
+        isLoading = false;
+      });
     }
 
+    // Action Cable 연결
+    const consumer = ActionCable.createConsumer();
+    let chatChannel;
+
+    // 채널 구독
+    function subscribeToChannel() {
+      chatChannel = consumer.subscriptions.create(
+        { channel: 'ChatChannel', room_id: chatRoomId },
+        {
+          connected() {
+            console.log('Connected to ChatChannel');
+          },
+
+          disconnected() {
+            console.log('Disconnected from ChatChannel');
+          },
+
+          received(data) {
+            console.log('Received message:', data);
+            addMessage(data.username, data.content, data.timestamp);
+          },
+
+          error(error) {
+            console.error('Channel error:', error);
+          }
+        }
+      );
+    }
+
+    // 메시지 전송
     form.addEventListener('submit', function(e) {
       e.preventDefault();
 
       const content = contentInput.value.trim();
       if (!content) return;
 
-      // 임시로 메시지 추가 (실제로는 Action Cable로 처리)
-      addMessage('나', content, new Date().toLocaleTimeString());
-      contentInput.value = '';
+      // HTTP API로 메시지 전송 (소켓으로 실시간 브로드캐스트)
+      fetch(`/chat_rooms/${chatRoomId}/chats`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+          content: content
+        })
+      }).then(() => {
+        contentInput.value = '';
+      }).catch(error => {
+        console.error('메시지 전송 실패:', error);
+      });
     });
 
+    // 메시지 UI 추가
     function addMessage(username, content, timestamp) {
       const messageDiv = document.createElement('div');
       messageDiv.className = 'message';
       messageDiv.innerHTML = `
         <div class="message-header">
-          <span class="username">${username}</span>
+          <span class="username">${escapeHtml(username)}</span>
           <span class="timestamp">${timestamp}</span>
         </div>
-        <div class="message-content">${content}</div>
+        <div class="message-content">${escapeHtml(content)}</div>
       `;
 
       // empty-messages 제거
@@ -205,11 +289,28 @@
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
+    // XSS 방지를 위한 HTML 이스케이프
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
     // Enter 키로 전송
     contentInput.addEventListener('keypress', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         form.dispatchEvent(new Event('submit'));
+      }
+    });
+
+    // 채널 구독 시작
+    subscribeToChannel();
+
+    // 페이지 떠날 때 연결 해제
+    document.addEventListener('turbo:before-visit', function() {
+      if (chatChannel) {
+        consumer.subscriptions.remove(chatChannel);
       }
     });
   });
