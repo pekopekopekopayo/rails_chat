@@ -1,0 +1,216 @@
+<div class="chat-room-container">
+  <div class="chat-header">
+    <h2><%= @chat_room.name %></h2>
+    <div class="header-actions">
+      <%= link_to '방 목록', chat_rooms_path, class: 'btn-secondary' %>
+    </div>
+  </div>
+
+  <div class="messages-container" id="messages">
+    <!-- 메시지들이 여기에 표시됩니다 -->
+  </div>
+
+  <div class="message-input-container">
+    <form id="message-form" class="message-form">
+      <input type="hidden" id="chat-room-id" value="<%= @chat_room.id %>" />
+      <div class="input-group">
+        <input type="text" id="message-content" placeholder="메시지를 입력하세요..." required />
+        <button type="submit" class="btn-send">전송</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<%= content_for :head do %>
+  <style>
+    .chat-room-container {
+      max-width: 900px;
+      margin: 20px auto;
+      height: calc(100vh - 40px);
+      display: flex;
+      flex-direction: column;
+      background-color: white;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      background-color: #007bff;
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chat-header h2 {
+      margin: 0;
+      font-size: 1.5em;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .messages-container {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      background-color: #f8f9fa;
+    }
+
+    .message {
+      margin-bottom: 15px;
+      padding: 10px 15px;
+      border-radius: 10px;
+      background-color: white;
+      border-left: 3px solid #007bff;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    .message-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+
+    .username {
+      font-weight: bold;
+      color: #007bff;
+    }
+
+    .timestamp {
+      font-size: 0.8em;
+      color: #666;
+    }
+
+    .message-content {
+      color: #333;
+      line-height: 1.4;
+    }
+
+    .message-input-container {
+      padding: 20px;
+      background-color: white;
+      border-top: 1px solid #ddd;
+    }
+
+    .message-form {
+      display: flex;
+    }
+
+    .input-group {
+      display: flex;
+      width: 100%;
+      gap: 10px;
+    }
+
+    #message-content {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 25px;
+      font-size: 16px;
+      outline: none;
+    }
+
+    #message-content:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+    }
+
+    .btn-send {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .btn-send:hover {
+      background-color: #0056b3;
+    }
+
+    .btn-secondary {
+      background-color: rgba(255,255,255,0.2);
+      color: white;
+      padding: 8px 16px;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 5px;
+      text-decoration: none;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .btn-secondary:hover {
+      background-color: rgba(255,255,255,0.3);
+    }
+
+    .empty-messages {
+      text-align: center;
+      color: #666;
+      font-style: italic;
+      margin-top: 50px;
+    }
+  </style>
+<% end %>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('message-form');
+    const messagesContainer = document.getElementById('messages');
+    const contentInput = document.getElementById('message-content');
+    const chatRoomId = document.getElementById('chat-room-id').value;
+
+    // 초기 메시지가 없으면 안내 문구 표시
+    if (messagesContainer.children.length === 0) {
+      messagesContainer.innerHTML = '<div class="empty-messages">아직 메시지가 없습니다. 첫 번째 메시지를 보내보세요!</div>';
+    }
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const content = contentInput.value.trim();
+      if (!content) return;
+
+      // 임시로 메시지 추가 (실제로는 Action Cable로 처리)
+      addMessage('나', content, new Date().toLocaleTimeString());
+      contentInput.value = '';
+    });
+
+    function addMessage(username, content, timestamp) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'message';
+      messageDiv.innerHTML = `
+        <div class="message-header">
+          <span class="username">${username}</span>
+          <span class="timestamp">${timestamp}</span>
+        </div>
+        <div class="message-content">${content}</div>
+      `;
+
+      // empty-messages 제거
+      const emptyMessage = messagesContainer.querySelector('.empty-messages');
+      if (emptyMessage) {
+        emptyMessage.remove();
+      }
+
+      messagesContainer.appendChild(messageDiv);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // Enter 키로 전송
+    contentInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        form.dispatchEvent(new Event('submit'));
+      }
+    });
+  });
+</script>
